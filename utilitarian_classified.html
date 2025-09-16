@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Utilitarian Talent Selector — Classified by Role</title>
+  <style>
+    :root{
+      --bg:#0f1222; --panel:#171b2f; --ink:#e8ecff; --muted:#a6b0d6; --accent:#66a3ff; --line:#2a3155;
+      --good:#4cd964; --warn:#ffd166; --bad:#ff686b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:Inter,system-ui,Segoe UI,Arial,sans-serif; background:var(--bg); color:var(--ink);}
+    header{padding:24px; background:linear-gradient(135deg,#0f1222,#1a2142); border-bottom:1px solid var(--line);}
+    header h1{margin:0 0 6px; font-size:22px; letter-spacing:.4px}
+    header p{margin:0; color:var(--muted); font-size:14px}
+    nav{display:flex; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); background:rgba(23,27,47,.6); position:sticky; top:0; backdrop-filter:saturate(140%) blur(8px)}
+    .tab{padding:10px 14px; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:8px; cursor:pointer; font-weight:600}
+    .tab.active{border-color:var(--accent); box-shadow:0 0 0 2px rgba(102,163,255,.25) inset}
+    main{max-width:1100px; margin:18px auto; padding:0 16px 64px}
+    .sport{display:none; animation:fade .25s ease}
+    .sport.active{display:block}
+    .role-block{background:var(--panel); border:1px solid var(--line); border-radius:14px; margin:18px 0 26px; overflow:hidden}
+    .role-head{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#131732; border-bottom:1px solid var(--line)}
+    .role-head h3{margin:0; font-size:16px; letter-spacing:.3px}
+    .meta{color:var(--muted); font-size:12px}
+    table{width:100%; border-collapse:collapse}
+    th,td{padding:12px 10px; border-bottom:1px solid var(--line); text-align:left; font-size:13px}
+    th{color:#c6d2ff; background:#12162e; position:sticky; top:58px}
+    tr:hover td{background:rgba(102,163,255,.06)}
+    .pill{display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; border:1px solid var(--line); color:var(--muted)}
+    .score{font-weight:800}
+    .score.good{color:var(--good)} .score.mid{color:var(--warn)} .score.low{color:var(--bad)}
+    .controls{display:flex; gap:10px; padding:10px 0 0 0; flex-wrap:wrap}
+    .control{background:#12162e; border:1px solid var(--line); border-radius:10px; padding:6px 10px; color:var(--muted); font-size:12px}
+    .search{flex:1; min-width:200px}
+    input, select{background:transparent; border:none; outline:none; color:var(--ink); width:100%}
+    .footer-note{color:var(--muted); font-size:12px; margin-top:24px}
+    @keyframes fade{from{opacity:.6; transform:translateY(4px)} to{opacity:1; transform:none}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Utilitarian Talent Selector</h1>
+    <p>Classified rankings by role — Soccer, MLB, and Cricket. Scores computed from performance, resource gap, stage importance, and ethics.</p>
+  </header>
+
+  <nav>
+    <button class="tab active" data-tab="soccer">Soccer</button>
+    <button class="tab" data-tab="mlb">MLB</button>
+    <button class="tab" data-tab="cricket">Cricket</button>
+  </nav>
+
+  <main>
+    <section id="soccer" class="sport active"></section>
+    <section id="mlb" class="sport"></section>
+    <section id="cricket" class="sport"></section>
+
+    <div class="footer-note">
+      Demo data included for structure. Plug your API/DB to replace the dataset. Utilitarian Score = PI × ln(1+RG) × SI × (1−EP).
+    </div>
+  </main>
+
+  <script>
+    // ---------- Demo Dataset (replace with API) ----------
+    const DATA = {
+      soccer: [
+        {name:"A. Ortega", team:"Underdog FC", pos:"GK", age:26, PI:0.82, SI:1.20, EP:0.03, RG:2.6},
+        {name:"B. Ramos", team:"Legacy FC", pos:"GK", age:31, PI:0.78, SI:1.10, EP:0.04, RG:2.1},
+        {name:"C. Dantas", team:"Rising United", pos:"DF", age:24, PI:0.86, SI:1.15, EP:0.02, RG:2.8},
+        {name:"D. Okoye", team:"Budget Stars", pos:"DF", age:29, PI:0.80, SI:1.05, EP:0.03, RG:1.9},
+        {name:"E. Tanaka", team:"Academy XI", pos:"MF", age:21, PI:0.88, SI:1.05, EP:0.02, RG:1.7},
+        {name:"F. Martins", team:"Legacy FC", pos:"MF", age:30, PI:0.84, SI:1.10, EP:0.05, RG:2.3},
+        {name:"G. Singh", team:"Rising United", pos:"FW", age:23, PI:0.95, SI:1.25, EP:0.03, RG:3.0},
+        {name:"H. Duarte", team:"Underdog FC", pos:"FW", age:27, PI:0.90, SI:1.15, EP:0.02, RG:2.4},
+        {name:"I. Kovač", team:"Budget Stars", pos:"MF", age:25, PI:0.83, SI:1.05, EP:0.02, RG:1.8},
+        {name:"J. Mensah", team:"Academy XI", pos:"DF", age:20, PI:0.81, SI:1.00, EP:0.01, RG:1.6},
+        {name:"K. Rahimi", team:"Legacy FC", pos:"GK", age:28, PI:0.80, SI:1.10, EP:0.06, RG:2.0},
+        {name:"L. Rossi", team:"Rising United", pos:"FW", age:22, PI:0.89, SI:1.20, EP:0.02, RG:2.7}
+      ],
+      mlb: [
+        {name:"J. Carter", team:"Low Payroll Aces", role:"Pitcher", slot:"SP", PI:1.10, SI:1.20, EP:0.02, RG:2.8},
+        {name:"S. Lee", team:"Farmers Club", role:"Pitcher", slot:"RP", PI:1.05, SI:1.10, EP:0.02, RG:2.2},
+        {name:"R. Diaz", team:"Grassroots Giants", role:"Hitter", slot:"OF", PI:1.02, SI:1.00, EP:0.03, RG:2.0},
+        {name:"T. Novak", team:"Budget Sluggers", role:"Hitter", slot:"C", PI:0.98, SI:1.00, EP:0.02, RG:1.9},
+        {name:"E. Park", team:"Midwest Minors", role:"Pitcher", slot:"SP", PI:1.03, SI:1.10, EP:0.03, RG:2.1},
+        {name:"M. Young", team:"Riverside Reds", role:"Hitter", slot:"1B", PI:1.01, SI:1.05, EP:0.01, RG:2.3},
+        {name:"K. Sato", team:"City Owls", role:"Two-Way", slot:"P/DH", PI:1.12, SI:1.25, EP:0.03, RG:3.1},
+        {name:"A. Patel", team:"Coastal Bears", role:"Pitcher", slot:"RP", PI:1.00, SI:1.05, EP:0.03, RG:1.8},
+        {name:"N. Ortiz", team:"Desert Suns", role:"Hitter", slot:"SS", PI:1.04, SI:1.10, EP:0.02, RG:2.5},
+        {name:"B. Chen", team:"Harbor Hawks", role:"Hitter", slot:"3B", PI:0.97, SI:1.00, EP:0.02, RG:1.7}
+      ],
+      cricket: [
+        {name:"Arjun Mehta", team:"Rookie XI", role:"Batter", hand:"RHB", PI:1.00, SI:1.30, EP:0.02, RG:2.4},
+        {name:"Imran Qadir", team:"Local Legends", role:"Bowler", type:"Leg-spin", PI:0.96, SI:1.25, EP:0.02, RG:2.2},
+        {name:"Rahul Verma", team:"Academy Stars", role:"All-Rounder", type:"Bat/Seam", PI:0.94, SI:1.20, EP:0.02, RG:2.0},
+        {name:"Sanjay Kulkarni", team:"Budget XI", role:"Batter", hand:"LHB", PI:0.92, SI:1.10, EP:0.01, RG:1.8},
+        {name:"Ali Nawaz", team:"Heritage XI", role:"Bowler", type:"Pace", PI:0.90, SI:1.15, EP:0.04, RG:2.3},
+        {name:"Bhavesh Nair", team:"Rookie XI", role:"Wicket-Keeper", hand:"RHB", PI:0.91, SI:1.10, EP:0.01, RG:1.9},
+        {name:"Farhan Malik", team:"Local Legends", role:"All-Rounder", type:"Spin/Finisher", PI:0.95, SI:1.25, EP:0.03, RG:2.6},
+        {name:"Gurpreet Singh", team:"Academy Stars", role:"Bowler", type:"Pace", PI:0.89, SI:1.10, EP:0.02, RG:1.7},
+        {name:"Harsh Chauhan", team:"Budget XI", role:"Batter", hand:"RHB", PI:0.93, SI:1.15, EP:0.02, RG:2.0},
+        {name:"Irfan Pathan Jr", team:"Heritage XI", role:"All-Rounder", type:"Seam/Power", PI:0.92, SI:1.20, EP:0.03, RG:2.1}
+      ]
+    };
+
+    // ---------- Scoring ----------
+    const utilScore = (PI, RG, SI, EP) => {
+      const score = PI * Math.log(1 + RG) * SI * (1 - EP);
+      return Math.round(score * 100) / 100;
+    };
+    const scoreTone = s => s >= 1.1 ? "good" : (s >= 0.95 ? "mid" : "low");
+
+    // ---------- Render Helpers ----------
+    const $ = sel => document.querySelector(sel);
+    function el(tag, cls, text){
+      const e = document.createElement(tag); if(cls) e.className = cls; if(text) e.textContent = text; return e;
+    }
+
+    function buildTable(headers, rows){
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      headers.forEach(h => { const th = el('th','',h); trh.appendChild(th); });
+      thead.appendChild(trh);
+      const tbody = document.createElement('tbody');
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        r.forEach(cell => {
+          const td = document.createElement('td');
+          if (cell && cell.html) { td.innerHTML = cell.html; }
+          else td.textContent = (cell ?? '');
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(thead); table.appendChild(tbody);
+      return table;
+    }
+
+    function sectionTitle(title, count){
+      const head = el('div','role-head');
+      const h3 = el('h3','',title);
+      const meta = el('div','meta',`${count} players`);
+      head.appendChild(h3); head.appendChild(meta);
+      return head;
+    }
+
+    // ---------- Soccer ----------
+    function renderSoccer(){
+      const root = $('#soccer'); root.innerHTML = "";
+      const groups = {
+        "Goalkeepers": DATA.soccer.filter(p=>p.pos==="GK"),
+        "Defenders":   DATA.soccer.filter(p=>p.pos==="DF"),
+        "Midfielders": DATA.soccer.filter(p=>p.pos==="MF"),
+        "Forwards":    DATA.soccer.filter(p=>p.pos==="FW")
+      };
+      Object.entries(groups).forEach(([title, list])=>{
+        const block = el('div','role-block');
+        block.appendChild(sectionTitle(title, list.length));
+        const rows = list
+          .map(p => {
+            const s = utilScore(p.PI,p.RG,p.SI,p.EP);
+            return [
+              {html:`<strong>${p.name}</strong><br><span class="pill">${p.team}</span>`},
+              p.pos,
+              p.age ?? "",
+              p.PI.toFixed(2),
+              `ln(1+${p.RG.toFixed(2)})`,
+              p.SI.toFixed(2),
+              (p.EP*100).toFixed(1)+"%",
+              {html:`<span class="score ${scoreTone(s)}">${s}</span>`}
+            ];
+          })
+          .sort((a,b)=> parseFloat(b[7].html.match(/>([\d.]+)</)[1]) - parseFloat(a[7].html.match(/>([\d.]+)</)[1]));
+        const table = buildTable(["Player • Team","Pos","Age","PI","RG (log)","SI","EP","Utilitarian Score"], rows);
+        block.appendChild(table);
+        root.appendChild(block);
+      });
+    }
+
+    // ---------- MLB ----------
+    function renderMLB(){
+      const root = $('#mlb'); root.innerHTML = "";
+      const groups = {
+        "Pitchers": DATA.mlb.filter(p=>p.role==="Pitcher"),
+        "Hitters":  DATA.mlb.filter(p=>p.role==="Hitter"),
+        "Two-Way":  DATA.mlb.filter(p=>p.role==="Two-Way")
+      };
+      Object.entries(groups).forEach(([title, list])=>{
+        const block = el('div','role-block');
+        block.appendChild(sectionTitle(title, list.length));
+        const rows = list
+          .map(p => {
+            const s = utilScore(p.PI,p.RG,p.SI,p.EP);
+            return [
+              {html:`<strong>${p.name}</strong><br><span class="pill">${p.team}</span>`},
+              p.role, p.slot,
+              p.PI.toFixed(2),
+              `ln(1+${p.RG.toFixed(2)})`,
+              p.SI.toFixed(2),
+              (p.EP*100).toFixed(1)+"%",
+              {html:`<span class="score ${scoreTone(s)}">${s}</span>`}
+            ];
+          })
+          .sort((a,b)=> parseFloat(b[7].html.match(/>([\d.]+)</)[1]) - parseFloat(a[7].html.match(/>([\d.]+)</)[1]));
+        const table = buildTable(["Player • Team","Role","Slot","PI","RG (log)","SI","EP","Utilitarian Score"], rows);
+        block.appendChild(table);
+        root.appendChild(block);
+      });
+    }
+
+    // ---------- Cricket ----------
+    function renderCricket(){
+      const root = $('#cricket'); root.innerHTML = "";
+      const groups = {
+        "Batters":        DATA.cricket.filter(p=>p.role==="Batter"),
+        "Bowlers":        DATA.cricket.filter(p=>p.role==="Bowler"),
+        "All-Rounders":   DATA.cricket.filter(p=>p.role==="All-Rounder"),
+        "Wicket-Keepers": DATA.cricket.filter(p=>p.role==="Wicket-Keeper")
+      };
+      Object.entries(groups).forEach(([title, list])=>{
+        const block = el('div','role-block');
+        block.appendChild(sectionTitle(title, list.length));
+        const rows = list
+          .map(p => {
+            const s = utilScore(p.PI,p.RG,p.SI,p.EP);
+            const trait = p.type || p.hand || "";
+            return [
+              {html:`<strong>${p.name}</strong><br><span class="pill">${p.team}</span>`},
+              title.slice(0,-1), // singular-ish label
+              trait,
+              p.PI.toFixed(2),
+              `ln(1+${p.RG.toFixed(2)})`,
+              p.SI.toFixed(2),
+              (p.EP*100).toFixed(1)+"%",
+              {html:`<span class="score ${scoreTone(s)}">${s}</span>`}
+            ];
+          })
+          .sort((a,b)=> parseFloat(b[7].html.match(/>([\d.]+)</)[1]) - parseFloat(a[7].html.match(/>([\d.]+)</)[1]));
+        const table = buildTable(["Player • Team","Role","Trait","PI","RG (log)","SI","EP","Utilitarian Score"], rows);
+        block.appendChild(table);
+        root.appendChild(block);
+      });
+    }
+
+    // ---------- Tabs ----------
+    document.querySelectorAll('.tab').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const tab = e.currentTarget.dataset.tab;
+        document.querySelectorAll('.sport').forEach(s=>s.classList.remove('active'));
+        document.getElementById(tab).classList.add('active');
+      });
+    });
+
+    // Initial render
+    renderSoccer(); renderMLB(); renderCricket();
+  </script>
+</body>
+</html>
