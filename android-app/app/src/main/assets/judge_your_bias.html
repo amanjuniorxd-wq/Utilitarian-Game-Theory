@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Judge Your Bias</title>
+  <style>
+    :root {
+      --bg: #070b1a;
+      --panel: #121a33;
+      --panel-2: #1a2547;
+      --text: #e7edff;
+      --muted: #98a5d4;
+      --accent: #75a7ff;
+      --danger: #ff6f6f;
+      --success: #4fe19b;
+      --line: #2a3a6f;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 0%, #1d2d5d, #070b1a 45%);
+      min-height: 100vh;
+    }
+
+    .app { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
+    .card {
+      background: linear-gradient(150deg, rgba(26,37,71,.95), rgba(18,26,51,.96));
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 12px 38px rgba(0,0,0,.28);
+    }
+
+    .header { padding: 20px; margin-bottom: 14px; }
+    h1 { margin: 0 0 6px; font-size: 2rem; }
+    .subtitle { margin: 0; color: var(--muted); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .stat-box { padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(9,14,31,.55); }
+    .stat-label { color: var(--muted); font-size: .82rem; }
+    .stat-value { font-size: 1.4rem; font-weight: 800; margin-top: 2px; }
+
+    .meter-wrap { margin-top: 12px; }
+    .meter-track {
+      height: 14px;
+      border-radius: 999px;
+      background: #0c1430;
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .meter-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #4fe19b, #4ab4ff);
+      transition: width .35s ease, background .35s ease;
+    }
+    .warning {
+      margin-top: 10px;
+      border: 1px solid #803535;
+      background: rgba(120,28,28,.25);
+      color: #ffc1c1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 600;
+      display: none;
+    }
+    .warning.show { display: block; }
+
+    .board-card { padding: 16px; margin-bottom: 14px; }
+    .board-title { margin: 0 0 4px; font-size: 1.1rem; }
+    .board-subtitle { margin: 0 0 12px; color: var(--muted); font-size: .9rem; }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(17, minmax(0, 1fr));
+      gap: 4px;
+      background: #0a122d;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+    }
+    .cell {
+      height: 26px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,.08);
+      position: relative;
+    }
+    .cell.light { background: linear-gradient(145deg, #dce6ff, #a6b7e6); }
+    .cell.dark { background: linear-gradient(145deg, #3b4f85, #1f2d53); }
+    .piece {
+      position: absolute;
+      inset: 3px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #fff6af, #ffc23f);
+      box-shadow: 0 0 12px rgba(255,194,63,.85);
+      border: 1px solid #fff1b8;
+    }
+
+    .scenario { padding: 18px; }
+    .badge {
+      display: inline-block;
+      background: rgba(117,167,255,.12);
+      color: #b9d2ff;
+      border: 1px solid rgba(117,167,255,.45);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: .78rem;
+      margin-bottom: 10px;
+    }
+    .scenario h2 { margin: 0 0 8px; font-size: 1.3rem; }
+    .scenario p { margin: 0 0 14px; color: #d2dcff; line-height: 1.45; }
+
+    .choices { display: grid; gap: 10px; }
+    .choice {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: rgba(8,13,28,.6);
+      color: var(--text);
+      padding: 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: .15s ease;
+    }
+    .choice:hover { border-color: #6d94ef; transform: translateY(-1px); }
+    .choice small { color: var(--muted); display: block; margin-top: 3px; }
+
+    .result {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(11,17,37,.7);
+      padding: 12px;
+      color: #d0ddff;
+      display: none;
+    }
+    .result.show { display: block; }
+
+    .actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+    button.primary {
+      background: linear-gradient(135deg, #5f8eff, #7f70ff);
+      border: none;
+      color: white;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    button.ghost {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    .log { margin-top: 14px; padding: 14px; }
+    .log h3 { margin: 0 0 8px; font-size: 1rem; }
+    .log ul { margin: 0; padding-left: 18px; color: #d2dcff; }
+    .log li { margin: 4px 0; }
+
+    @media (max-width: 760px) {
+      .board { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="card header">
+      <h1>Judge Your Bias</h1>
+      <p class="subtitle">A playable governance strategy game. Detect your tilt, preserve legitimacy, and avoid one-sided collapse.</p>
+      <div class="meter-wrap">
+        <div class="meter-track"><div id="bias-fill" class="meter-fill"></div></div>
+        <div id="warning" class="warning">⚠ Bias Meter is below 600. Governance legitimacy is unstable.</div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="stat-box"><div class="stat-label">Bias Meter</div><div id="bias-value" class="stat-value">1000</div></div>
+      <div class="stat-box"><div class="stat-label">Left-side moves used</div><div id="left-moves" class="stat-value">0 / 25</div></div>
+      <div class="stat-box"><div class="stat-label">Right-side moves used</div><div id="right-moves" class="stat-value">0 / 25</div></div>
+      <div class="stat-box"><div class="stat-label">Scenario</div><div id="scenario-num" class="stat-value">1 / 5</div></div>
+    </section>
+
+    <section class="card board-card">
+      <h2 class="board-title">Polished Bias Board</h2>
+      <p class="board-subtitle">Each side is capped at 25 moves. Keep your marker near the center for resilient governance.</p>
+      <div id="board" class="board"></div>
+    </section>
+
+    <section class="card scenario">
+      <span class="badge">Playable Scenario</span>
+      <h2 id="scenario-title"></h2>
+      <p id="scenario-context"></p>
+      <div id="choices" class="choices"></div>
+      <div id="result" class="result"></div>
+      <div class="actions">
+        <button id="next-btn" class="primary" disabled>Next Scenario</button>
+        <button id="restart-btn" class="ghost">Restart</button>
+      </div>
+    </section>
+
+    <section class="card log">
+      <h3>Decision Log</h3>
+      <ul id="decision-log"></ul>
+    </section>
+  </div>
+
+  <script>
+    const MAX_SIDE_MOVES = 25;
+    const BIAS_WARNING_THRESHOLD = 600;
+    const BIAS_MIN = 0;
+    const BIAS_MAX = 1200;
+
+    const scenarios = [
+      {
+        title: "AI Welfare Allocation",
+        context: "Automation improves speed but can hide errors that hurt vulnerable claimants.",
+        choices: [
+          { text: "Full automation now", side: "left", biasDelta: -170, feedback: "Efficiency rose, but accountability became opaque." },
+          { text: "Suspend AI permanently", side: "left", biasDelta: -110, feedback: "Immediate harms reduced, but service capacity dropped." },
+          { text: "Hybrid rollout with appeal rights and audits", side: "right", biasDelta: 85, feedback: "Good balance: speed gains with visible safeguards." }
+        ]
+      },
+      {
+        title: "Climate & Jobs",
+        context: "Aggressive climate policy and present-day employment protections are both urgent.",
+        choices: [
+          { text: "Max climate, immediate cuts", side: "left", biasDelta: -150, feedback: "Long-term risk reduced, short-term social strain worsened." },
+          { text: "Growth first, postpone climate", side: "left", biasDelta: -165, feedback: "Employment stabilized now, future damage intensified." },
+          { text: "Phased transition with annual public revision", side: "right", biasDelta: 90, feedback: "You managed trade-offs with adaptive accountability." }
+        ]
+      },
+      {
+        title: "Speech vs Safety",
+        context: "Platforms must protect users while preserving legitimate expression.",
+        choices: [
+          { text: "No moderation at all", side: "left", biasDelta: -180, feedback: "Abuse and harassment costs escalated." },
+          { text: "Strict censorship by default", side: "left", biasDelta: -140, feedback: "Safety improved, but legitimate dissent was chilled." },
+          { text: "Layered moderation + independent appeals", side: "right", biasDelta: 100, feedback: "Solid procedural control with contestability." }
+        ]
+      },
+      {
+        title: "Emergency Powers",
+        context: "Crises demand speed, but emergency authority can become permanent.",
+        choices: [
+          { text: "Unlimited emergency authority", side: "left", biasDelta: -200, feedback: "Fast response, major institutional risk." },
+          { text: "No emergency flexibility", side: "left", biasDelta: -150, feedback: "Process purity preserved while practical harms increased." },
+          { text: "Time-boxed powers + mandatory sunset audits", side: "right", biasDelta: 105, feedback: "Strong move: action with structural constraints." }
+        ]
+      },
+      {
+        title: "Meta-Governance",
+        context: "Your own governance design is criticized for complexity and hidden power.",
+        choices: [
+          { text: "Declare the framework final", side: "left", biasDelta: -220, feedback: "Closure trap triggered: reflexive legitimacy failed." },
+          { text: "Abandon governance design", side: "left", biasDelta: -170, feedback: "Accountability dissolved with institutional retreat." },
+          { text: "Open public critique channels + automatic policy sunsets", side: "right", biasDelta: 120, feedback: "Excellent reflexive governance under uncertainty." }
+        ]
+      }
+    ];
+
+    const state = {
+      scenarioIndex: 0,
+      biasMeter: 1000,
+      leftMoves: 0,
+      rightMoves: 0,
+      chosen: false,
+      log: []
+    };
+
+    const boardEl = document.getElementById('board');
+    const warningEl = document.getElementById('warning');
+    const biasFillEl = document.getElementById('bias-fill');
+
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+    function buildBoard() {
+      boardEl.innerHTML = '';
+      for (let i = 0; i < 51; i++) {
+        const cell = document.createElement('div');
+        cell.className = `cell ${i % 2 === 0 ? 'light' : 'dark'}`;
+        cell.dataset.index = i;
+        boardEl.appendChild(cell);
+      }
+    }
+
+    function markerIndex() {
+      const center = 25;
+      const drift = state.rightMoves - state.leftMoves;
+      return clamp(center + drift, 0, 50);
+    }
+
+    function paintBoard() {
+      boardEl.querySelectorAll('.piece').forEach(p => p.remove());
+      const idx = markerIndex();
+      const target = boardEl.querySelector(`.cell[data-index="${idx}"]`);
+      if (target) {
+        const piece = document.createElement('div');
+        piece.className = 'piece';
+        target.appendChild(piece);
+      }
+    }
+
+    function updateHUD() {
+      document.getElementById('bias-value').textContent = state.biasMeter;
+      document.getElementById('left-moves').textContent = `${state.leftMoves} / ${MAX_SIDE_MOVES}`;
+      document.getElementById('right-moves').textContent = `${state.rightMoves} / ${MAX_SIDE_MOVES}`;
+      document.getElementById('scenario-num').textContent = `${Math.min(state.scenarioIndex + 1, scenarios.length)} / ${scenarios.length}`;
+
+      const pct = (state.biasMeter / BIAS_MAX) * 100;
+      biasFillEl.style.width = `${pct}%`;
+      biasFillEl.style.background = state.biasMeter < BIAS_WARNING_THRESHOLD
+        ? 'linear-gradient(90deg,#ff6f6f,#ff9f6f)'
+        : 'linear-gradient(90deg,#4fe19b,#4ab4ff)';
+      warningEl.classList.toggle('show', state.biasMeter < BIAS_WARNING_THRESHOLD);
+
+      paintBoard();
+    }
+
+    function renderLog() {
+      const logEl = document.getElementById('decision-log');
+      logEl.innerHTML = '';
+      state.log.slice().reverse().forEach(entry => {
+        const li = document.createElement('li');
+        li.textContent = `${entry.scenario}: ${entry.choice} (${entry.side}-side move, ${entry.delta > 0 ? '+' : ''}${entry.delta})`;
+        logEl.appendChild(li);
+      });
+    }
+
+    function renderScenario() {
+      const scenario = scenarios[state.scenarioIndex];
+      const titleEl = document.getElementById('scenario-title');
+      const contextEl = document.getElementById('scenario-context');
+      const choicesEl = document.getElementById('choices');
+      const resultEl = document.getElementById('result');
+      const nextBtn = document.getElementById('next-btn');
+
+      if (!scenario) {
+        titleEl.textContent = "Game Complete";
+        contextEl.textContent = `Final Bias Meter: ${state.biasMeter}. Left moves: ${state.leftMoves}/${MAX_SIDE_MOVES}, Right moves: ${state.rightMoves}/${MAX_SIDE_MOVES}.`;
+        choicesEl.innerHTML = '';
+        resultEl.textContent = state.biasMeter < BIAS_WARNING_THRESHOLD
+          ? 'Outcome: You allowed bias instability. Rebalance your decisions next run.'
+          : 'Outcome: You maintained a stable governance profile under pressure.';
+        resultEl.classList.add('show');
+        nextBtn.disabled = true;
+        return;
+      }
+
+      titleEl.textContent = scenario.title;
+      contextEl.textContent = scenario.context;
+      choicesEl.innerHTML = '';
+      resultEl.classList.remove('show');
+      resultEl.textContent = '';
+      nextBtn.disabled = true;
+      state.chosen = false;
+
+      scenario.choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.innerHTML = `${choice.text}<small>Bias impact: ${choice.biasDelta > 0 ? '+' : ''}${choice.biasDelta}, uses ${choice.side}-side move</small>`;
+        btn.disabled = (choice.side === 'left' && state.leftMoves >= MAX_SIDE_MOVES) ||
+                       (choice.side === 'right' && state.rightMoves >= MAX_SIDE_MOVES);
+        btn.addEventListener('click', () => handleChoice(choice));
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    function handleChoice(choice) {
+      if (state.chosen) return;
+      if (choice.side === 'left' && state.leftMoves >= MAX_SIDE_MOVES) return;
+      if (choice.side === 'right' && state.rightMoves >= MAX_SIDE_MOVES) return;
+
+      state.chosen = true;
+      if (choice.side === 'left') state.leftMoves += 1;
+      if (choice.side === 'right') state.rightMoves += 1;
+      state.biasMeter = clamp(state.biasMeter + choice.biasDelta, BIAS_MIN, BIAS_MAX);
+
+      state.log.push({
+        scenario: scenarios[state.scenarioIndex].title,
+        choice: choice.text,
+        side: choice.side,
+        delta: choice.biasDelta
+      });
+
+      const resultEl = document.getElementById('result');
+      resultEl.textContent = choice.feedback;
+      resultEl.classList.add('show');
+
+      document.querySelectorAll('.choice').forEach(btn => btn.disabled = true);
+      document.getElementById('next-btn').disabled = false;
+
+      updateHUD();
+      renderLog();
+    }
+
+    function nextScenario() {
+      if (!state.chosen) return;
+      const exhausted = state.leftMoves >= MAX_SIDE_MOVES || state.rightMoves >= MAX_SIDE_MOVES;
+      state.scenarioIndex = exhausted ? scenarios.length : state.scenarioIndex + 1;
+      renderScenario();
+      updateHUD();
+    }
+
+    function restart() {
+      state.scenarioIndex = 0;
+      state.biasMeter = 1000;
+      state.leftMoves = 0;
+      state.rightMoves = 0;
+      state.chosen = false;
+      state.log = [];
+      renderScenario();
+      updateHUD();
+      renderLog();
+    }
+
+    document.getElementById('next-btn').addEventListener('click', nextScenario);
+    document.getElementById('restart-btn').addEventListener('click', restart);
+
+    buildBoard();
+    renderScenario();
+    updateHUD();
+  </script>
+</body>
+</html>
