@@ -46,6 +46,10 @@ def get_player(player_id):
 def dashboard():
     return send_from_directory(".", "utilitarian_classified.html")
 
+@app.route("/judge-your-bias")
+def judge_your_bias():
+    return send_from_directory(".", "judge_your_bias.html")
+
 def open_browser():
     webbrowser.open("http://127.0.0.1:5000/dashboard")
 
