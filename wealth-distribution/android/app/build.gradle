@@ -1,0 +1,5 @@
+plugins { id 'com.android.application' }
+
+android { namespace 'in.mishrin.wealthgrid'; compileSdk 35
+ defaultConfig { applicationId 'in.mishrin.wealthgrid'; minSdk 23; targetSdk 35; versionCode 1; versionName '1.0' }
+}
